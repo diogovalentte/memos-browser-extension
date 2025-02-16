@@ -15,12 +15,12 @@ const App = () => {
           <p className="text-base pt-2">
             This is a extension for the{' '}
             <a
-              href="https://github.com/linkwarden/linkwarden"
+              href="https://github.com/usememos/memos"
               rel="noopener"
               target="_blank"
               className="text-blue-400 hover:text-blue-500 duration-100 hover:underline"
             >
-              Linkwarden
+              Memos
             </a>
             . Please fill out the following text boxes accordingly.
           </p>

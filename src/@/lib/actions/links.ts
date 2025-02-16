@@ -1,52 +1,56 @@
-import captureScreenshot from '../screenshot.ts';
 import { bookmarkFormValues } from '../validators/bookmarkForm.ts';
 import axios from 'axios';
 import { bookmarkMetadata } from '../cache.ts';
 
-export async function postLink(
+export async function postMemo(
   baseUrl: string,
-  uploadImage: boolean,
   data: bookmarkFormValues,
-  setState: (state: 'capturing' | 'uploading' | null) => void,
   apiKey: string
 ) {
-  const url = `${baseUrl}/api/v1/links`;
+    const url = `${baseUrl}/api/v1/memos`;
+    let content = `# ${data.name}\n${data.url}`;
+    if (data.content) {
+      content += `\n\n${data.content}`;
+    }
+    if (data.tags && data.tags.length > 0) {
+      content += `\n\n#${data.tags.map(tag => tag.name).join(' #')}`;
+    }
 
-  if (uploadImage) {
-    setState('capturing');
-    const screenshot = await captureScreenshot();
-    setState('uploading');
+    const body = {
+        "content": content,
+        "visibility": "PUBLIC",
+    }
 
-    const link = await axios.post(url, data, {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-    });
-
-    const { id } = link.data.response;
-    const archiveUrl = `${baseUrl}/api/v1/archives/${id}?format=0`;
-
-    const formData = new FormData();
-    formData.append('file', screenshot, 'screenshot.png');
-
-    await axios.post(archiveUrl, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        Authorization: `Bearer ${apiKey}`,
-      },
-    });
-
-    setState(null);
-
-    return link;
-  } else {
-    return await axios.post(url, data, {
+    const response = await axios.post(url, body, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
     });
-  }
+
+    return response.data;
+}
+
+export async function updateMemo(
+  baseURL: string,
+  memoName: string,
+  createTime: string | null,
+  content: string | null,
+  apiKey: string,
+) {
+    const url = `${baseURL}/api/v1/${memoName}`;
+    const body: { createTime?: string; content?: string } = {}
+    if (createTime) {
+        body.createTime = createTime;
+    }
+    if (content) {
+        body.content = content;
+    }
+    return await axios.patch(url, body, {
+        headers: {
+            Authorization: `Bearer ${apiKey}`,
+        },
+    });
 }
 
 export async function postLinkFetch(
@@ -103,11 +107,35 @@ export async function getLinksFetch(
   baseUrl: string,
   apiKey: string
 ): Promise<{ response: bookmarkMetadata[] }> {
-  const url = `${baseUrl}/api/v1/links`;
+  const url = `${baseUrl}/api/v1/memos`;
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${apiKey}`,
     },
   });
   return await response.json();
+}
+
+export async function getMemos(baseUrl: string, apiKey: string) {
+    const url = `${baseUrl}/api/v1/memos`;
+
+    const response = await axios.get<{ memos: { name: string, content: string }[] }>(url, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+
+    return response.data.memos;
+}
+
+export async function getMemosContent(baseUrl: string, apiKey: string) {
+    const url = `${baseUrl}/api/v1/memos`;
+
+    const response = await axios.get<{ memos: { content: string }[] }>(url, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+
+    return response.data.memos.map(str => {
+        const lines = str.content.split('\n');
+        return lines[1] || '';  // Return the second line or an empty string if it doesn't exist
+        }
+    );
 }

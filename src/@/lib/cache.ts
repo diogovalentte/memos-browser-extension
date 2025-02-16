@@ -186,8 +186,7 @@ function logBookmarks(bookmarks: BookmarkTreeNode[], accumulator: bookmarkMetada
         collectionId: 0, // Define how to determine collectionId
         name: bookmark.title,
         url: bookmark.url,
-        description: '', // Define how to get description
-        collection: { id: 0, name: '', ownerId: 0 }, // Define collection details
+        content: '', // Define how to get description
         tags: [], // Define how to get tags
         bookmarkId: bookmark.id,
       });

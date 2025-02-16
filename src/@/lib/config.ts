@@ -4,8 +4,6 @@ import { configType } from './validators/config.ts';
 const DEFAULTS: configType = {
   baseUrl: '',
   apiKey: '',
-  defaultCollection: 'Unorganized',
-  syncBookmarks: false,
 };
 
 const CONFIG_KEY = 'linkwarden_config';

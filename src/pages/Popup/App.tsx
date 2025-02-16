@@ -37,10 +37,10 @@ function App() {
                 height="30px"
                 width="30px"
                 className="rounded"
-                alt="Linkwarden Logo"
+                alt="Memos Logo"
               />
             </a>
-            <h1 className="text-lg">Add Link</h1>
+            <h1 className="text-lg">Add Memo</h1>
           </div>
           <div className="flex items-center justify-center space-x-2">
             <ModeToggle />

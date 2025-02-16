@@ -1,11 +1,11 @@
 {
-  "name": "linkwarden-extension",
+  "name": "memos-extension",
   "private": true,
   "version": "0.0.1",
-  "author": "Jordan Higuera Higuera <jordan_higuera@hotmail.com>",
+  "author": "Diogo Valentim <diogo@valentium.com.br>",
   "type": "module",
   "license": "MIT",
-  "description": "Linkwarden browser extension",
+  "description": "Memos browser extension",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
