@@ -1,11 +1,11 @@
 {
-  "name": "linkwarden-extension",
+  "name": "memos-extension",
   "private": true,
   "version": "0.0.1",
-  "author": "Jordan Higuera Higuera <jordan_higuera@hotmail.com>",
+  "author": "Diogo Valentim <diogo@valentium.com.br>",
   "type": "module",
   "license": "MIT",
-  "description": "Linkwarden browser extension",
+  "description": "Memos browser extension",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -31,6 +31,7 @@
     "clsx": "^2.0.0",
     "cmdk": "^0.2.0",
     "lucide-react": "^0.264.0",
+    "luxon": "^3.5.0",
     "query-string": "^8.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -41,6 +42,7 @@
   },
   "devDependencies": {
     "@types/firefox-webext-browser": "^120.0.0",
+    "@types/luxon": "^3.4.2",
     "@types/node": "^20.4.8",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",

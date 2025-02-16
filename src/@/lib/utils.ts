@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { getLinksFetch } from './actions/links.ts';
+import { getMemos } from './actions/memos.ts';
 import { getConfig } from './config.ts';
 
 export function cn(...inputs: ClassValue[]) {
@@ -38,11 +38,14 @@ export async function getStorageItem(key: string) {
 }
 
 export const checkDuplicatedItem = async () => {
-  const config = await getConfig();
   const currentTab = await getCurrentTabInfo();
-  const { response } = await getLinksFetch(config.baseUrl, config.apiKey);
-  const formatLinks = response.map((link) => link.url);
-  return formatLinks.includes(currentTab.url ?? '');
+  if (!currentTab.url) {
+    return false;
+  }
+  const config = await getConfig();
+  const memosResponse = await getMemos(config.baseUrl, config.apiKey, config.user, null);
+  const URLs = memosResponse.memos.map((memo) => memo.content.split('\n')[1]);
+  return URLs.includes(currentTab.url);
 };
 
 export async function setStorageItem(key: string, value: string) {

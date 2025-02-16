@@ -65,3 +65,19 @@ export async function getSessionFetch(url: string) {
   const sessionJson = await session.json();
   return sessionJson.user;
 }
+
+export interface User {
+    name: string,
+}
+
+export async function getUserStatus(url: string, apiKey: string): Promise<User> {
+  url = `${url}/api/v1/auth/status`;
+  const response = await axios.post(url, null, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+  });
+
+  return response.data;
+}

@@ -18,7 +18,7 @@ import {
 import { Input } from './ui/Input.tsx';
 import { Button } from './ui/Button.tsx';
 import { useMutation } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   clearConfig,
   getConfig,
@@ -26,29 +26,36 @@ import {
   saveConfig,
 } from '../lib/config.ts';
 import { Toaster } from './ui/Toaster.tsx';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/Popover.tsx';
+import { CaretSortIcon } from '@radix-ui/react-icons';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from './ui/Command.tsx';
 import { toast } from '../../hooks/use-toast.ts';
 import { AxiosError } from 'axios';
 import { clearBookmarksMetadata } from '../lib/cache.ts';
-import { getSession } from '../lib/auth/auth.ts';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from './ui/Select.tsx'; // Import the Select component
+import { getUserStatus } from '../lib/auth/auth.ts';
 
 const OptionsForm = () => {
+  const [openVisibility, setOpenVisibility] = useState<boolean>(false);
+  const visibilityOptions = [
+    { name: 'Public' },
+    { name: 'Private' },
+    { name: 'Workspace' },
+  ];
+
   const form = useForm<optionsFormValues>({
     resolver: zodResolver(optionsFormSchema),
     defaultValues: {
-      baseUrl: 'https://cloud.linkwarden.app',
-      method: 'username', // Default to 'username'
-      username: '',
-      password: '',
+      baseUrl: 'https://memos.domain.com',
       apiKey: '',
-      syncBookmarks: false,
-      defaultCollection: 'Unorganized',
+      defaultVisibility: {
+        name: 'Public',
+      },
     },
   });
 
@@ -75,12 +82,10 @@ const OptionsForm = () => {
       // Reset the form
       form.reset({
         baseUrl: '',
-        method: 'username',
-        username: '',
-        password: '',
         apiKey: '',
-        syncBookmarks: false,
-        defaultCollection: 'Unorganized',
+        defaultVisibility: {
+            name: 'Public',
+        },
       });
       await clearConfig();
       await clearBookmarksMetadata();
@@ -93,7 +98,6 @@ const OptionsForm = () => {
       values.baseUrl = values.baseUrl.replace(/\/$/, '');
       // Do API call to test the connection and save the values
 
-      if (values.method === 'apiKey') {
         return {
           ...values,
           data: {
@@ -106,27 +110,6 @@ const OptionsForm = () => {
             };
           },
         };
-      } else {
-        // Handle Username/Password authentication
-        const session = await getSession(
-          values.baseUrl,
-          values.username,
-          values.password
-        );
-
-        if (session.status !== 200) {
-          throw new Error('Invalid credentials');
-        }
-
-        return {
-          ...values,
-          data: session.data as {
-            response: {
-              token: string;
-            };
-          },
-        };
-      }
     },
     onError: (error) => {
       // Handle errors appropriately
@@ -153,14 +136,17 @@ const OptionsForm = () => {
       }
     },
     onSuccess: async (values) => {
+      const userStatus = await getUserStatus(values.baseUrl, values.apiKey);
+    
+      let visibility = 'Public';
+      if (values.defaultVisibility) {
+        visibility = values.defaultVisibility.name;
+      }
       await saveConfig({
         baseUrl: values.baseUrl,
-        defaultCollection: values.defaultCollection,
-        syncBookmarks: values.syncBookmarks,
-        apiKey:
-          values.method === 'apiKey' && values.apiKey
-            ? values.apiKey
-            : values.data.response.token,
+        apiKey:  values.apiKey,
+        user: userStatus.name,
+        defaultVisibility: { name: visibility },
       });
 
       toast({
@@ -182,8 +168,7 @@ const OptionsForm = () => {
     })();
   }, [form]);
 
-  const { handleSubmit, control, watch } = form;
-  const method = watch('method'); // Watch the 'method' field
+  const { handleSubmit, control } = form;
 
   return (
     <div>
@@ -199,11 +184,11 @@ const OptionsForm = () => {
               <FormItem>
                 <FormLabel>URL</FormLabel>
                 <FormDescription>
-                  The address of the Linkwarden instance.
+                  The address of the Memos instance.
                 </FormDescription>
                 <FormControl>
                   <Input
-                    placeholder="https://cloud.linkwarden.app"
+                    placeholder="https://memos.domain.com"
                     {...field}
                   />
                 </FormControl>
@@ -212,36 +197,6 @@ const OptionsForm = () => {
             )}
           />
 
-          {/* Authentication Method Select */}
-          <FormField
-            control={control}
-            name="method"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Method</FormLabel>
-                <FormDescription>
-                  Choose your preferred authentication method.
-                </FormDescription>
-                <FormControl>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="w-full justify-between bg-neutral-100 dark:bg-neutral-900 outline-none focus:outline-none ring-0 focus:ring-0">
-                      <SelectValue placeholder="Select authentication method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="username">
-                        Username and Password
-                      </SelectItem>
-                      <SelectItem value="apiKey">API Key</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Conditionally render API Key or Username/Password fields */}
-          {method === 'apiKey' ? (
             <FormField
               control={control}
               name="apiKey"
@@ -249,7 +204,7 @@ const OptionsForm = () => {
                 <FormItem>
                   <FormLabel>API Key</FormLabel>
                   <FormDescription>
-                    Enter your Linkwarden API Key.
+                    Enter your Memos API Key.
                   </FormDescription>
                   <FormControl>
                     <Input
@@ -262,46 +217,79 @@ const OptionsForm = () => {
                 </FormItem>
               )}
             />
-          ) : (
-            <>
-              <FormField
-                control={control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Username or Email</FormLabel>
-                    <FormDescription>
-                      Your Linkwarden Username or Email.
-                    </FormDescription>
-                    <FormControl>
-                      <Input placeholder="johnny" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormDescription>
-                      Password for your Linkwarden account.
-                    </FormDescription>
-                    <FormControl>
-                      <Input
-                        placeholder="••••••••••••••"
-                        {...field}
-                        type="password"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </>
-          )}
+
+          <FormField
+            control={control}
+            name="defaultVisibility"
+            render={({ field }) => (
+              <FormItem className={`my-2`}>
+                <FormLabel>Visibility</FormLabel>
+                <div className="min-w-full inset-x-0">
+                  <Popover
+                    open={openVisibility}
+                    onOpenChange={setOpenVisibility}
+                  >
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openVisibility}
+                          className={
+                            'w-full justify-between bg-neutral-100 dark:bg-neutral-900'
+                          }
+                        >
+                          {field.value?.name
+                            ? visibilityOptions?.find(
+                                (option: { name: string }) =>
+                                  option.name === field.value?.name
+                              )?.name || form.getValues('defaultVisibility')?.name
+                            : 'Select visibility...'}
+                          <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+
+                      <PopoverContent
+                        className={`min-w-full p-0 overflow-y-auto max-h-[200px]`}
+                      >
+                        <Command className="flex-grow min-w-full dropdown-content">
+                          <CommandInput
+                            className="min-w-[280px]"
+                            placeholder="Search visibility..."
+                          />
+                          <CommandEmpty>No visibility found.</CommandEmpty>
+                          {Array.isArray(visibilityOptions) && (
+                            <CommandGroup className="w-full">
+                              {
+                                visibilityOptions?.map(
+                                  (option: {
+                                    name: string;
+                                  }) => (
+                                    <CommandItem
+                                      value={option.name}
+                                      onSelect={() => {
+                                        form.setValue('defaultVisibility', {
+                                          name: option.name,
+                                        });
+                                        setOpenVisibility(false);
+                                      }}
+                                    >
+                                      {option.name}
+                                    </CommandItem>
+                                  )
+                                )
+                              }
+                            </CommandGroup>
+                          )}
+                        </Command>
+                      </PopoverContent>
+                  </Popover>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           {/* Commented out fields */}
           {/* 

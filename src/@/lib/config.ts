@@ -4,11 +4,11 @@ import { configType } from './validators/config.ts';
 const DEFAULTS: configType = {
   baseUrl: '',
   apiKey: '',
-  defaultCollection: 'Unorganized',
-  syncBookmarks: false,
+  user: '',
+  defaultVisibility: { name: 'Public' },
 };
 
-const CONFIG_KEY = 'linkwarden_config';
+const CONFIG_KEY = 'memos_config';
 
 export async function getConfig(): Promise<configType> {
   const config = await getStorageItem(CONFIG_KEY);
@@ -25,7 +25,9 @@ export async function isConfigured() {
     !!config.baseUrl &&
     config.baseUrl !== '' &&
     !!config.apiKey &&
-    config.apiKey !== ''
+    config.apiKey !== '' &&
+    !!config.user &&
+    config.user !== ''
   );
 }
 
@@ -35,8 +37,7 @@ export async function clearConfig() {
     JSON.stringify({
       baseUrl: '',
       apiKey: '',
-      defaultCollection: 'Unorganized',
-      syncBookmarks: false,
+      user: '',
     })
   );
 }

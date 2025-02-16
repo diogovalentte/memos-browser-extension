@@ -2,9 +2,12 @@ import { z } from 'zod';
 
 export const configSchema = z.object({
   baseUrl: z.string().url(),
-  defaultCollection: z.string().optional().default('Unorganized'),
   apiKey: z.string(),
-  syncBookmarks: z.boolean().optional().default(false),
+  user: z.string(),
+  defaultVisibility: z
+    .object({
+      name: z.string(),
+    }),
 });
 
 export type configType = z.infer<typeof configSchema>;

@@ -1,8 +1,10 @@
 import { useForm } from 'react-hook-form';
+import { DateTime } from 'luxon';
+import { CaretSortIcon } from '@radix-ui/react-icons';
 import {
-  bookmarkFormSchema,
-  bookmarkFormValues,
-} from '../lib/validators/bookmarkForm.ts';
+  memoFormSchema,
+  memoFormValues,
+} from '../lib/validators/memoForm.ts';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Form,
@@ -20,15 +22,12 @@ import { checkDuplicatedItem, getCurrentTabInfo } from '../lib/utils.ts';
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { getConfig, isConfigured } from '../lib/config.ts';
-import { postLink } from '../lib/actions/links.ts';
+import { postMemo, updateMemo } from '../lib/actions/memos.ts';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/Popover.tsx';
 import { AxiosError } from 'axios';
 import { toast } from '../../hooks/use-toast.ts';
 import { Toaster } from './ui/Toaster.tsx';
-import { getCollections } from '../lib/actions/collections.ts';
 import { getTags } from '../lib/actions/tags.ts';
-import { X } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/Popover.tsx';
-import { CaretSortIcon } from '@radix-ui/react-icons';
 import {
   Command,
   CommandEmpty,
@@ -36,49 +35,65 @@ import {
   CommandInput,
   CommandItem,
 } from './ui/Command.tsx';
-import { saveLinksInCache } from '../lib/cache.ts';
-import { Checkbox } from './ui/CheckBox.tsx';
-import { Label } from './ui/Label.tsx';
+
+async function saveToArchive(url: string) {
+    fetch(`https://web.archive.org/save/${encodeURIComponent(url)}`)
+        .catch(console.error);
+}
 
 let configured = false;
 let duplicated = false;
 const BookmarkForm = () => {
-  const [openOptions, setOpenOptions] = useState<boolean>(false);
-  const [openCollections, setOpenCollections] = useState<boolean>(false);
-  const [uploadImage, setUploadImage] = useState<boolean>(false);
-  const [state, setState] = useState<'capturing' | 'uploading' | null>(null);
+  const [state] = useState<'capturing' | 'uploading' | null>(null);
+  const [openVisibility, setOpenVisibility] = useState<boolean>(false);
+  const visibilityOptions = [
+    { name: 'Public' },
+    { name: 'Private' },
+    { name: 'Workspace' },
+  ];
 
-  const handleCheckedChange = (s: boolean | 'indeterminate') => {
-    if (s === 'indeterminate') return;
-    setUploadImage(s);
-    form.setValue('image', s ? 'png' : undefined);
-  };
-
-  const form = useForm<bookmarkFormValues>({
-    resolver: zodResolver(bookmarkFormSchema),
+  const form = useForm<memoFormValues>({
+    resolver: zodResolver(memoFormSchema),
     defaultValues: {
       url: '',
       name: '',
-      collection: {
-        name: 'Unorganized',
-      },
       tags: [],
-      description: '',
-      image: undefined,
+      content: '',
+      createTime: '',
+      visibility: {
+        name: 'Public',
+      },
     },
   });
 
   const { mutate: onSubmit, isLoading } = useMutation({
-    mutationFn: async (values: bookmarkFormValues) => {
+    mutationFn: async (values: memoFormValues) => {
       const config = await getConfig();
 
-      await postLink(
+      if (values.visibility?.name === 'Private') {
+        values.visibility = { name: 'PRIVATE' };
+      } else if (values.visibility?.name === 'Workspace') {
+        values.visibility = { name: 'PROTECTED' };
+      } else if (values.visibility?.name === 'Public') {
+        values.visibility = { name: 'PUBLIC' };
+      }
+
+      const memoData = await postMemo(
         config.baseUrl,
-        uploadImage,
         values,
-        setState,
         config.apiKey
       );
+
+      if (values.createTime) {
+          const createDatetime = DateTime.fromISO(values.createTime, { zone: 'local' });
+          await updateMemo(
+            config.baseUrl,
+            memoData.name,
+            createDatetime.toISO(),
+            null,
+            config.apiKey
+          );
+      }
 
       return;
     },
@@ -87,30 +102,31 @@ const BookmarkForm = () => {
       if (error instanceof AxiosError) {
         toast({
           title: 'Error',
-          description:
+          content:
             error.response?.data.response ||
-            'There was an error while trying to save the link. Please try again.',
+            'There was an error while trying to save the memo. Please try again.',
           variant: 'destructive',
         });
       } else {
         toast({
           title: 'Error',
-          description:
-            'There was an error while trying to save the link. Please try again.',
+          content:
+            'There was an error while trying to save the memo. Please try again.',
           variant: 'destructive',
         });
       }
       return;
     },
-    onSuccess: () => {
+    onSuccess: (_, values) => {
+      saveToArchive(values.url);
+      toast({
+        title: 'Success',
+        description: 'Memo saved successfully!',
+      });
       setTimeout(() => {
         window.close();
         // I want to show some confirmation before it's closed...
       }, 3500);
-      toast({
-        title: 'Success',
-        description: 'Link saved successfully!',
-      });
     },
   });
 
@@ -118,59 +134,21 @@ const BookmarkForm = () => {
 
   useEffect(() => {
     getCurrentTabInfo().then(({ url, title }) => {
-      getConfig().then((config) => {
+      getConfig().then(() => {
         form.setValue('url', url ? url : '');
         form.setValue('name', title ? title : '');
-        form.setValue('collection', {
-          name: config.defaultCollection,
-        });
       });
     });
     const getConfigUse = async () => {
+      const config = await getConfig();
+      form.setValue('visibility', {
+        name: config.defaultVisibility.name,
+      });
       configured = await isConfigured();
       duplicated = await checkDuplicatedItem();
     };
     getConfigUse();
   }, [form]);
-
-  useEffect(() => {
-    const syncBookmarks = async () => {
-      try {
-        const { syncBookmarks, baseUrl, defaultCollection } = await getConfig();
-        form.setValue('collection', {
-          name: defaultCollection,
-        });
-        if (!syncBookmarks) {
-          return;
-        }
-        if (await isConfigured()) {
-          await saveLinksInCache(baseUrl);
-          //await syncLocalBookmarks(baseUrl);
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    syncBookmarks();
-  }, [form]);
-
-  const {
-    isLoading: loadingCollections,
-    data: collections,
-    error: collectionError,
-  } = useQuery({
-    queryKey: ['collections'],
-    queryFn: async () => {
-      const config = await getConfig();
-
-      const response = await getCollections(config.baseUrl, config.apiKey);
-
-      return response.data.response.sort((a, b) => {
-        return a.pathname.localeCompare(b.pathname);
-      });
-    },
-    enabled: configured,
-  });
 
   const {
     isLoading: loadingTags,
@@ -194,176 +172,80 @@ const BookmarkForm = () => {
     <div>
       <Form {...form}>
         <form onSubmit={handleSubmit((e) => onSubmit(e))} className="py-1">
-          {collectionError ? (
-            <p className="text-red-600">
-              There was an error, please make sure the website is available.
-            </p>
-          ) : null}
+            <div className="details list-none space-y-5 pt-2">
+              {tagsError ? <p>There was an error...</p> : null}
           <FormField
             control={control}
-            name="collection"
+            name="visibility"
             render={({ field }) => (
               <FormItem className={`my-2`}>
-                <FormLabel>Collection</FormLabel>
+                <FormLabel>Visibility</FormLabel>
                 <div className="min-w-full inset-x-0">
                   <Popover
-                    open={openCollections}
-                    onOpenChange={setOpenCollections}
+                    open={openVisibility}
+                    onOpenChange={setOpenVisibility}
                   >
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
                           variant="outline"
                           role="combobox"
-                          aria-expanded={openCollections}
+                          aria-expanded={openVisibility}
                           className={
                             'w-full justify-between bg-neutral-100 dark:bg-neutral-900'
                           }
                         >
-                          {loadingCollections
-                            ? 'Loading'
-                            : field.value?.name
-                            ? collections?.find(
-                                (collection: { name: string }) =>
-                                  collection.name === field.value?.name
-                              )?.name || form.getValues('collection')?.name
-                            : 'Select a collection...'}
+                          {field.value?.name
+                            ? visibilityOptions?.find(
+                                (option: { name: string }) =>
+                                  option.name === field.value?.name
+                              )?.name || form.getValues('visibility')?.name
+                            : 'Select visibility...'}
                           <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
 
-                    {!openOptions && openCollections ? (
-                      <div
-                        className={`fade-up min-w-full p-0 overflow-y-auto ${
-                          openCollections
-                            ? 'fixed inset-0 w-full h-full z-50 bg-white'
-                            : ''
-                        }`}
-                      >
-                        <Button
-                          className="absolute top-1 right-1 bg-transparent hover:bg-transparent hover:opacity-50 transition-colors ease-in-out duration-200"
-                          onClick={() => setOpenCollections(false)}
-                        >
-                          <X className={`h-4 w-4 text-black dark:text-white`} />
-                        </Button>
-                        <Command className="flex-grow min-w-full dropdown-content rounded-none">
-                          <CommandInput
-                            className="min-w-[280px]"
-                            placeholder="Search Collection..."
-                          />
-                          <CommandEmpty>No Collection found.</CommandEmpty>
-                          {Array.isArray(collections) && (
-                            <CommandGroup className="w-full overflow-y-auto">
-                              {isLoading ? (
-                                <CommandItem
-                                  value="Getting collections..."
-                                  key="Getting collections..."
-                                  onSelect={() => {
-                                    form.setValue('collection', {
-                                      name: 'Unorganized',
-                                    });
-                                    setOpenCollections(false);
-                                  }}
-                                >
-                                  Unorganized
-                                </CommandItem>
-                              ) : (
-                                collections?.map(
-                                  (collection: {
-                                    name: string;
-                                    id: number;
-                                    ownerId: number;
-                                    pathname: string;
-                                  }) => (
-                                    <CommandItem
-                                      value={collection.name}
-                                      key={collection.id}
-                                      className="cursor-pointer flex flex-col items-start justify-start"
-                                      onSelect={() => {
-                                        form.setValue('collection', {
-                                          ownerId: collection.ownerId,
-                                          id: collection.id,
-                                          name: collection.name,
-                                        });
-                                        setOpenCollections(false);
-                                      }}
-                                    >
-                                      <p>{collection.name}</p>
-                                      <p className="text-xs text-neutral-500">
-                                        {collection.pathname}
-                                      </p>
-                                    </CommandItem>
-                                  )
-                                )
-                              )}
-                            </CommandGroup>
-                          )}
-                        </Command>
-                      </div>
-                    ) : openOptions && openCollections ? (
                       <PopoverContent
                         className={`min-w-full p-0 overflow-y-auto max-h-[200px]`}
                       >
                         <Command className="flex-grow min-w-full dropdown-content">
                           <CommandInput
                             className="min-w-[280px]"
-                            placeholder="Search collection..."
+                            placeholder="Search visibility..."
                           />
-                          <CommandEmpty>No Collection found.</CommandEmpty>
-                          {Array.isArray(collections) && (
+                          <CommandEmpty>No visibility found.</CommandEmpty>
+                          {Array.isArray(visibilityOptions) && (
                             <CommandGroup className="w-full">
-                              {isLoading ? (
-                                <CommandItem
-                                  value="Getting collections..."
-                                  key="Getting collections..."
-                                  onSelect={() => {
-                                    form.setValue('collection', {
-                                      name: 'Unorganized',
-                                    });
-                                    setOpenCollections(false);
-                                  }}
-                                >
-                                  Unorganized
-                                </CommandItem>
-                              ) : (
-                                collections?.map(
-                                  (collection: {
+                              {
+                                visibilityOptions?.map(
+                                  (option: {
                                     name: string;
-                                    id: number;
-                                    ownerId: number;
                                   }) => (
                                     <CommandItem
-                                      value={collection.name}
-                                      key={collection.id}
+                                      value={option.name}
                                       onSelect={() => {
-                                        form.setValue('collection', {
-                                          ownerId: collection.ownerId,
-                                          id: collection.id,
-                                          name: collection.name,
+                                        form.setValue('visibility', {
+                                          name: option.name,
                                         });
-                                        setOpenCollections(false);
+                                        setOpenVisibility(false);
                                       }}
                                     >
-                                      {collection.name}
+                                      {option.name}
                                     </CommandItem>
                                   )
                                 )
-                              )}
+                              }
                             </CommandGroup>
                           )}
                         </Command>
                       </PopoverContent>
-                    ) : undefined}
                   </Popover>
                 </div>
                 <FormMessage />
               </FormItem>
             )}
           />
-          {openOptions && (
-            <div className="details list-none space-y-5 pt-2">
-              {tagsError ? <p>There was an error...</p> : null}
               <FormField
                 control={control}
                 name="tags"
@@ -408,41 +290,41 @@ const BookmarkForm = () => {
               />
               <FormField
                 control={control}
-                name="description"
+                name="content"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>Content</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Description..." {...field} />
+                      <Textarea placeholder="Content..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Label className="flex items-center gap-2 w-fit cursor-pointer">
-                <Checkbox
-                  checked={uploadImage}
-                  onCheckedChange={handleCheckedChange}
-                />
-                Upload image from browser
-              </Label>
+              <FormField
+                control={control}
+                name="createTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Created Date</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        placeholder="Created date..."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-          )}
           {duplicated && (
             <p className="text-muted text-zinc-600 dark:text-zinc-400 mt-2">
-              You already have this link saved.
+              You already have a recent memo for this link.
             </p>
           )}
           <div className="flex justify-between items-center mt-4">
-            <div
-              className="inline-flex select-none items-center justify-center rounded-md text-sm font-medium ring-offset-background
-               transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
-               focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50
-               hover:bg-accent hover:text-accent-foreground hover:cursor-pointer p-2"
-              onClick={() => setOpenOptions((prevState) => !prevState)}
-            >
-              {openOptions ? 'Hide' : 'More'} Options
-            </div>
             <Button disabled={isLoading} type="submit">
               Save
             </Button>

@@ -1,18 +1,12 @@
 import { getBrowser, getCurrentTabInfo } from '../../@/lib/utils.ts';
+import { getMemos, updateMemo, Memo } from '../../@/lib/actions/memos.ts';
 // import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import { getConfig, isConfigured } from '../../@/lib/config.ts';
 import {
-  // deleteLinkFetch,
-  // updateLinkFetch,
-  postLinkFetch,
-} from '../../@/lib/actions/links.ts';
-import {
-  bookmarkMetadata,
   // deleteBookmarkMetadata,
   // getBookmarkMetadataByBookmarkId,
   // getBookmarkMetadataByUrl,
   getBookmarksMetadata,
-  saveBookmarkMetadata,
 } from '../../@/lib/cache.ts';
 import ContextType = chrome.contextMenus.ContextType;
 import OnClickData = chrome.contextMenus.OnClickData;
@@ -191,110 +185,75 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
   await genericOnClick(info, tab);
 });
 
+function findInSecondLine(list: { name: string, content: string }[], searchString: string): Memo | null {
+  for (const memo of list) {
+    const lines = memo.content.split('\n'); 
+    if (lines[1] && lines[1].includes(searchString)) {
+      return { content: memo.content, name: memo.name }; 
+    }
+  }
+  return null;
+}
+
 // A generic onclick callback function.
 async function genericOnClick(
   info: OnClickData,
   tab: chrome.tabs.Tab | undefined
 ) {
-  const { syncBookmarks, baseUrl } = await getConfig();
   const configured = await isConfigured();
   if (!tab?.url || !tab?.title || !configured) {
     return;
   }
-  switch (info.menuItemId) {
-    case 'save-all-tabs': {
-      const tabs = await browser.tabs.query({ currentWindow: true });
-      const config = await getConfig();
-
-      for (const tab of tabs) {
-        if (
-          tab.url &&
-          !tab.url.startsWith('chrome://') &&
-          !tab.url.startsWith('about:')
-        ) {
-          try {
-            if (new URL(tab.url))
-              await postLinkFetch(
-                config.baseUrl,
-                {
-                  url: tab.url,
-                  name: tab.title || '',
-                  description: tab.title || '',
-                  collection: {
-                    name: config.defaultCollection,
-                  },
-                  tags: [],
-                },
-                config.apiKey
-              );
-          } catch (error) {
-            console.error(`Failed to save tab: ${tab.url}`, error);
-          }
-        }
-      }
-      break;
-    }
-    default:
-      // Handle cases where sync is enabled or not
-      if (syncBookmarks) {
-        browser.bookmarks.create({
-          parentId: '1',
-          title: tab.title,
-          url: tab.url,
-        });
-      } else {
+    
+    if (info.selectionText) {
         const config = await getConfig();
-
         try {
-          const newLink = await postLinkFetch(
-            baseUrl,
-            {
-              url: tab.url,
-              collection: {
-                name: 'Unorganized',
-              },
-              tags: [],
-              name: tab.title,
-              description: tab.title,
-            },
-            config.apiKey
-          );
+            let nextPageToken = null;
+            let memo: Memo | null = null;
+            while (nextPageToken !== "") {
+                const memosResponse = await getMemos(config.baseUrl, config.apiKey, config.user, nextPageToken);
+                memo = findInSecondLine(memosResponse.memos, tab.url);
+                if (memo) {
+                    break
+                }
+                nextPageToken = memosResponse.nextPageToken;
+            }
 
-          const newLinkJson = await newLink.json();
-          const newLinkUrl: bookmarkMetadata = newLinkJson.response;
-          newLinkUrl.bookmarkId = tab.id?.toString();
+            if (memo) {
+                const lines = memo.content.split('\n');
+                const lastLine = lines.pop();
 
-          await saveBookmarkMetadata(newLinkUrl);
+                let newContent = "";
+                if (lastLine && lastLine[0] === '#') {
+                    lines.push(info.selectionText);
+                    lines.push('\n' + lastLine);
+                    newContent = lines.join('\n');
+                } else {
+                    newContent = memo.content + '\n\n' + info.selectionText;
+                }
+
+                updateMemo(config.baseUrl, memo.name, null, newContent, config.apiKey);
+            }
+
         } catch (error) {
           console.error(error);
         }
-      }
-  }
+    }
 }
 browser.runtime.onInstalled.addListener(function () {
   // Create one test item for each context type.
   const contexts: ContextType[] = [
-    'page',
     'selection',
-    'link',
     'editable',
-    'image',
-    'video',
-    'audio',
   ];
   for (const context of contexts) {
-    const title: string = 'Add link to Linkwarden';
+    const title: string = 'Append to current page memo';
     browser.contextMenus.create({
       title: title,
       contexts: [context],
       id: context,
     });
   }
-  browser.contextMenus.create({
-    id: 'save-all-tabs',
-    title: 'Save all tabs to Linkwarden',
-    contexts: ['page'],
-  });
 });
 
 // Omnibox implementation
