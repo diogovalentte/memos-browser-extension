@@ -7,7 +7,7 @@ export async function postMemo(
   apiKey: string,
 ) {
     const url = `${baseUrl}/api/v1/memos`;
-    let content = `# ${data.name}\n${data.url}`;
+    let content = `# ${data.name}\n- [Source](${data.url})`;
     if (data.content) {
       content += `\n\n${data.content}`;
     }
@@ -65,6 +65,7 @@ export async function updateMemo(
 export interface Memo {
     name: string;
     content: string;
+    tags: string[];
 }
 
 export async function getMemos(baseUrl: string, apiKey: string, user: string, nextPageToken: string | null): Promise<{ memos: Memo[], nextPageToken: string }> {

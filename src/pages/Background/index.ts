@@ -185,11 +185,11 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
   await genericOnClick(info, tab);
 });
 
-function findInSecondLine(list: { name: string, content: string }[], searchString: string): Memo | null {
-  for (const memo of list) {
+function findInSecondLine(memos: Memo[], searchString: string): Memo | null {
+  for (const memo of memos) {
     const lines = memo.content.split('\n'); 
     if (lines[1] && lines[1].includes(searchString)) {
-      return { content: memo.content, name: memo.name }; 
+      return { content: memo.content, name: memo.name, tags: memo.tags }; 
     }
   }
   return null;

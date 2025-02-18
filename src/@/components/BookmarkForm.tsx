@@ -159,7 +159,7 @@ const BookmarkForm = () => {
     queryFn: async () => {
       const config = await getConfig();
 
-      const response = await getTags(config.baseUrl, config.apiKey);
+      const response = await getTags(config.baseUrl, config.apiKey, config.user);
 
       return response.data.response.sort((a, b) => {
         return a.name.localeCompare(b.name);
