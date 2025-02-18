@@ -1,4 +1,4 @@
-import { getBrowser, getCurrentTabInfo } from '../../@/lib/utils.ts';
+import { encodeURL, getBrowser, getCurrentTabInfo } from '../../@/lib/utils.ts';
 import { getMemos, updateMemo, Memo } from '../../@/lib/actions/memos.ts';
 // import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import { getConfig, isConfigured } from '../../@/lib/config.ts';
@@ -200,12 +200,21 @@ async function genericOnClick(
   info: OnClickData,
   tab: chrome.tabs.Tab | undefined
 ) {
-  const configured = await isConfigured();
-  if (!tab?.url || !tab?.title || !configured) {
-    return;
-  }
-    
-    if (info.selectionText) {
+    const configured = await isConfigured();
+    if (!tab?.url || !tab?.title || !configured) {
+        return;
+    }
+
+    let pageContent = "";
+    if (info.menuItemId === "link" && info.linkUrl) {
+        pageContent = info.linkUrl;
+    } else if (info.menuItemId === "image" && info.srcUrl) {
+        pageContent = "![Image](" + encodeURL(info.srcUrl) + ")";
+    } else if (info.menuItemId === "selection" && info.selectionText) {
+        pageContent = info.selectionText;
+    }
+
+    if (pageContent !== "") {
         const config = await getConfig();
         try {
             let nextPageToken = null;
@@ -225,11 +234,11 @@ async function genericOnClick(
 
                 let newContent = "";
                 if (lastLine && lastLine[0] === '#') {
-                    lines.push(info.selectionText);
+                    lines.push(pageContent);
                     lines.push('\n' + lastLine);
                     newContent = lines.join('\n');
                 } else {
-                    newContent = memo.content + '\n\n' + info.selectionText;
+                    newContent = memo.content + '\n\n' + pageContent;
                 }
 
                 updateMemo(config.baseUrl, memo.name, null, newContent, config.apiKey);
@@ -243,8 +252,13 @@ async function genericOnClick(
 browser.runtime.onInstalled.addListener(function () {
   // Create one test item for each context type.
   const contexts: ContextType[] = [
+    // 'page',
     'selection',
-    'editable',
+    'link',
+    // 'editable',
+    'image',
+    // 'video',
+    // 'audio',
   ];
   for (const context of contexts) {
     const title: string = 'Append to current page memo';
