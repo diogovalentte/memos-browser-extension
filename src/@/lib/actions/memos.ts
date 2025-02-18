@@ -38,18 +38,28 @@ export async function updateMemo(
   apiKey: string,
 ) {
     const url = `${baseURL}/api/v1/${memoName}`;
-    const body: { createTime?: string; content?: string } = {}
+    const body: { createTime?: string; content?: string } = {};
     if (createTime) {
         body.createTime = createTime;
     }
     if (content) {
         body.content = content;
     }
-    return await axios.patch(url, body, {
+    
+    const response = await fetch(url, {
+        method: "PATCH",
         headers: {
             Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json"
         },
+        body: JSON.stringify(body)
     });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    
+    return await response.json();
 }
 
 export interface Memo {
@@ -61,12 +71,22 @@ export async function getMemos(baseUrl: string, apiKey: string, user: string, ne
     let url = `${baseUrl}/api/v1/memos?parent=${user}`;
 
     if (nextPageToken) {
-        url += `?pageToken=${nextPageToken}`;
+        url += `&pageToken=${nextPageToken}`;
     }
 
-    const response = await axios.get<{ memos: { name: string, content: string }[], nextPageToken: string }>(url, {
-      headers: { Authorization: `Bearer ${apiKey}` },
+    const response = await fetch(url, {
+        method: "GET",
+        headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json"
+        }
     });
-
-    return { memos: response.data.memos, nextPageToken: response.data.nextPageToken };
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    return { memos: data.memos, nextPageToken: data.nextPageToken };
 }
