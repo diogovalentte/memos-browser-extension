@@ -217,55 +217,64 @@ async function genericOnClick(
         return;
     }
 
-    let pageContent = "";
-    if (info.menuItemId === "link" && info.linkUrl) {
-        pageContent = info.linkUrl;
-    } else if (info.menuItemId === "image" && info.srcUrl) {
-        pageContent = "![Image](" + encodeURL(info.srcUrl) + ")";
-    } else if (info.menuItemId === "selection" && info.selectionText) {
-        if (!tab.id) {
-            return;
+    const config = await getConfig();
+
+    if (info.menuItemId !== "openMemo") {
+        let pageContent = "";
+        if (info.menuItemId === "link" && info.linkUrl) {
+            pageContent = info.linkUrl;
+        } else if (info.menuItemId === "image" && info.srcUrl) {
+            pageContent = "![Image](" + encodeURL(info.srcUrl) + ")";
+        } else if (info.menuItemId === "selection" && info.selectionText) {
+            if (!tab.id) {
+                return;
+            }
+            pageContent = info.selectionText;
+            browser.tabs.executeScript(tab.id, {
+                code: `(${getSelectedTextWithLinks.toString()})();`
+            }).then(() => {
+              browser.tabs.executeScript(tab.id!, {
+                code: 'document.documentElement.getAttribute("memos-selection-data");',
+              }).then((results) => {
+                const links = JSON.parse(results[0]) as { text: string, url: string }[];
+                const occurrences = new Map<string, number>();
+                links.forEach((link) => {
+                    occurrences.set(link.text, (occurrences.get(link.text) || 0) + 1);
+                    const url = encodeURL(link.url);
+                    pageContent = replaceNthOccurrence(pageContent, link.text, `[${link.text}](${url})`, occurrences.get(link.text)!);
+                });
+              }).catch(console.error);
+            }).catch(console.error);
         }
-        pageContent = info.selectionText;
-        browser.tabs.executeScript(tab.id, {
-            code: `(${getSelectedTextWithLinks.toString()})();`
-        }).then(() => {
-          browser.tabs.executeScript(tab.id!, {
-            code: 'document.documentElement.getAttribute("memos-selection-data");',
-          }).then((results) => {
-            const links = JSON.parse(results[0]) as { text: string, url: string }[];
-            const occurrences = new Map<string, number>();
-            links.forEach((link) => {
-                occurrences.set(link.text, (occurrences.get(link.text) || 0) + 1);
-                const url = encodeURL(link.url);
-                pageContent = replaceNthOccurrence(pageContent, link.text, `[${link.text}](${url})`, occurrences.get(link.text)!);
-            });
-          }).catch(console.error);
-        }).catch(console.error);
-    }
 
-    if (pageContent !== "") {
-        const config = await getConfig();
-        try {
-            const memo = await searchMemoByURL(config.baseUrl, config.apiKey, config.user, tab.url);
-            if (memo) {
-                const lines = memo.content.split('\n');
-                const lastLine = lines.pop();
+        if (pageContent !== "") {
+            try {
+                const memo = await searchMemoByURL(config.baseUrl, config.apiKey, config.user, tab.url);
+                if (memo) {
+                    const lines = memo.content.split('\n');
+                    const lastLine = lines.pop();
 
-                let newContent = "";
-                if (lastLine && lastLine[0] === '#') {
-                    lines.push(pageContent);
-                    lines.push('\n' + lastLine);
-                    newContent = lines.join('\n');
-                } else {
-                    newContent = memo.content + '\n\n' + pageContent;
+                    let newContent = "";
+                    if (lastLine && lastLine[0] === '#') {
+                        lines.push(pageContent);
+                        lines.push('\n' + lastLine);
+                        newContent = lines.join('\n');
+                    } else {
+                        newContent = memo.content + '\n\n' + pageContent;
+                    }
+
+                    updateMemo(config.baseUrl, memo.name, null, newContent, config.apiKey);
                 }
 
-                updateMemo(config.baseUrl, memo.name, null, newContent, config.apiKey);
+            } catch (error) {
+              console.error(error);
             }
-
-        } catch (error) {
-          console.error(error);
+        }
+    } else {
+        const memo = await searchMemoByURL(config.baseUrl, config.apiKey, config.user, tab.url);
+        if (memo) {
+            const url = `${config.baseUrl}/m/${memo.name.split('/')[1]}`;
+            browser.tabs.create({ url });
         }
     }
 }
@@ -366,3 +375,37 @@ browser.omnibox.onInputEntered.addListener(
     }
   }
 );
+
+async function addOpenMemoToContextMenu(tabURL: string) {
+  const configured = await isConfigured();
+  if (!configured) {
+    return;
+  }
+
+  const config = await getConfig();
+  const memo = await searchMemoByURL(config.baseUrl, config.apiKey, config.user, tabURL); 
+  if (memo) {
+      browser.contextMenus.create({
+        title: 'Open memo',
+        contexts: ['page'],
+        id: 'openMemo',
+      });
+  } else {
+    browser.contextMenus.remove('openMemo');
+  }
+}
+
+browser.tabs.onActivated.addListener((activeInfo) => {
+  browser.tabs.get(activeInfo.tabId).then((tab) => {
+    if (tab.url) {
+        addOpenMemoToContextMenu(tab.url);
+    } else {
+      browser.tabs.onUpdated.addListener(function waitForUrl(tabId, _, updatedTab) {
+        if (tabId === activeInfo.tabId && updatedTab.url) {
+          browser.tabs.onUpdated.removeListener(waitForUrl);
+          addOpenMemoToContextMenu(updatedTab.url);
+        }
+      });
+    }
+  });
+});
