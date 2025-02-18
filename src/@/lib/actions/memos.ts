@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { encodeURL } from '../utils.ts';
 import { memoFormValues } from '../validators/memoForm.ts';
 
 export async function postMemo(
@@ -7,7 +8,7 @@ export async function postMemo(
   apiKey: string,
 ) {
     const url = `${baseUrl}/api/v1/memos`;
-    let content = `# ${data.name}\n- [Source](${data.url})`;
+    let content = `# ${data.name}\n- [Source](${encodeURL(data.url)})`;
     if (data.content) {
       content += `\n\n${data.content}`;
     }

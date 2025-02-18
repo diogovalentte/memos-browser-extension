@@ -60,3 +60,7 @@ export async function setStorageItem(key: string, value: string) {
 export function openOptions() {
   getBrowser().runtime.openOptionsPage();
 }
+
+export function encodeURL(url: string) {
+  return url.replace(/\(/g, "%28").replace(/\)/g, "%29");
+}
