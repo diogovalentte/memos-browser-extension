@@ -1,7 +1,8 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { getMemos } from './actions/memos.ts';
+import { searchMemoByURL } from './actions/memos.ts';
 import { getConfig } from './config.ts';
+import escapeStringRegexp from 'escape-string-regexp';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -43,9 +44,9 @@ export const checkDuplicatedItem = async () => {
     return false;
   }
   const config = await getConfig();
-  const memosResponse = await getMemos(config.baseUrl, config.apiKey, config.user, null);
-  const URLs = memosResponse.memos.map((memo) => memo.content.split('\n')[1]);
-  return URLs.includes(currentTab.url);
+  const memo = await searchMemoByURL(config.baseUrl, config.apiKey, config.user, currentTab.url);
+
+  return !!memo;
 };
 
 export async function setStorageItem(key: string, value: string) {
@@ -63,4 +64,13 @@ export function openOptions() {
 
 export function encodeURL(url: string) {
   return url.replace(/\(/g, "%28").replace(/\)/g, "%29");
+}
+
+export function replaceNthOccurrence(text: string, search: string, replace: string, occurrence: number): string {
+    search = escapeStringRegexp(search);
+    let count = 0;
+    return text.replace(new RegExp(search, 'g'), (match) => {
+        count++;
+        return count === occurrence ? replace : match;
+    });
 }

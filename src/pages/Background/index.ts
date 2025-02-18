@@ -1,5 +1,5 @@
-import { encodeURL, getBrowser, getCurrentTabInfo } from '../../@/lib/utils.ts';
-import { getMemos, updateMemo, Memo } from '../../@/lib/actions/memos.ts';
+import { encodeURL, getBrowser, getCurrentTabInfo, replaceNthOccurrence } from '../../@/lib/utils.ts';
+import { updateMemo, searchMemoByURL } from '../../@/lib/actions/memos.ts';
 // import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import { getConfig, isConfigured } from '../../@/lib/config.ts';
 import {
@@ -185,14 +185,26 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
   await genericOnClick(info, tab);
 });
 
-function findInSecondLine(memos: Memo[], searchString: string): Memo | null {
-  for (const memo of memos) {
-    const lines = memo.content.split('\n'); 
-    if (lines[1] && lines[1].includes(searchString)) {
-      return { content: memo.content, name: memo.name, tags: memo.tags }; 
-    }
+function getSelectedTextWithLinks(): void {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) {
+    document.documentElement.setAttribute("memos-selection-data", "No selection found.");
+    return;
   }
-  return null;
+
+  const range = selection.getRangeAt(0);
+  const container = document.createElement("div");
+  container.appendChild(range.cloneContents());
+
+  const links: { text: string, url: string }[] = [];
+
+  container.querySelectorAll("a").forEach((anchor) => {
+    const linkText = anchor.textContent?.trim() || "Link";
+    const href = anchor.getAttribute("href") || "";
+    links.push({ text: linkText, url: href });
+  });
+
+  document.documentElement.setAttribute("memos-selection-data", JSON.stringify(links));
 }
 
 // A generic onclick callback function.
@@ -211,23 +223,31 @@ async function genericOnClick(
     } else if (info.menuItemId === "image" && info.srcUrl) {
         pageContent = "![Image](" + encodeURL(info.srcUrl) + ")";
     } else if (info.menuItemId === "selection" && info.selectionText) {
+        if (!tab.id) {
+            return;
+        }
         pageContent = info.selectionText;
+        browser.tabs.executeScript(tab.id, {
+            code: `(${getSelectedTextWithLinks.toString()})();`
+        }).then(() => {
+          browser.tabs.executeScript(tab.id!, {
+            code: 'document.documentElement.getAttribute("memos-selection-data");',
+          }).then((results) => {
+            const links = JSON.parse(results[0]) as { text: string, url: string }[];
+            const occurrences = new Map<string, number>();
+            links.forEach((link) => {
+                occurrences.set(link.text, (occurrences.get(link.text) || 0) + 1);
+                const url = encodeURL(link.url);
+                pageContent = replaceNthOccurrence(pageContent, link.text, `[${link.text}](${url})`, occurrences.get(link.text)!);
+            });
+          }).catch(console.error);
+        }).catch(console.error);
     }
 
     if (pageContent !== "") {
         const config = await getConfig();
         try {
-            let nextPageToken = null;
-            let memo: Memo | null = null;
-            while (nextPageToken !== "") {
-                const memosResponse = await getMemos(config.baseUrl, config.apiKey, config.user, nextPageToken);
-                memo = findInSecondLine(memosResponse.memos, tab.url);
-                if (memo) {
-                    break
-                }
-                nextPageToken = memosResponse.nextPageToken;
-            }
-
+            const memo = await searchMemoByURL(config.baseUrl, config.apiKey, config.user, tab.url);
             if (memo) {
                 const lines = memo.content.split('\n');
                 const lastLine = lines.pop();

@@ -92,3 +92,30 @@ export async function getMemos(baseUrl: string, apiKey: string, user: string, ne
     
     return { memos: data.memos, nextPageToken: data.nextPageToken };
 }
+
+// Search a memo by URL in the second line of the content
+export async function searchMemoByURL(baseUrl: string, apiKey: string, user: string, url: string): Promise<Memo | null> {
+    let nextPageToken = null;
+    let memo: Memo | null = null;
+    while (nextPageToken !== "") {
+        const memosResponse = await getMemos(baseUrl, apiKey, user, nextPageToken);
+        memo = findInSecondLine(memosResponse.memos, url);
+        if (memo) {
+            return memo;
+        }
+        nextPageToken = memosResponse.nextPageToken;
+    }
+
+    return memo;
+}
+
+function findInSecondLine(memos: Memo[], searchString: string): Memo | null {
+  for (const memo of memos) {
+    const lines = memo.content.split('\n'); 
+    if (lines[1] && lines[1].includes(searchString)) {
+      return { content: memo.content, name: memo.name, tags: memo.tags }; 
+    }
+  }
+
+  return null;
+}
