@@ -1,4 +1,5 @@
 import browser from 'webextension-polyfill';
+import { executeScript } from './utils';
 
 const loadImage = (blob: Blob): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
@@ -70,22 +71,6 @@ const drawImagesOnCanvas = async (
     });
   });
 };
-
-async function executeScript(tabId: number, func: any, args: any[] = []) {
-  if (typeof chrome.scripting !== 'undefined') {
-    const results = await chrome.scripting.executeScript({
-      target: { tabId },
-      func,
-      args,
-    });
-    return results[0]?.result;
-  } else {
-    const results = await browser.tabs.executeScript(tabId, {
-      code: `(${func})(${args.map((arg) => JSON.stringify(arg)).join(',')})`,
-    });
-    return results[0];
-  }
-}
 
 async function captureFullPageScreenshot(): Promise<Blob> {
   const tabs = await browser.tabs.query({ active: true, currentWindow: true });

@@ -1,4 +1,5 @@
 import { useForm } from 'react-hook-form';
+import browser from 'webextension-polyfill';
 import { encodeURL } from '../../@/lib/utils.ts';
 import { DateTime } from 'luxon';
 import { CaretSortIcon } from '@radix-ui/react-icons';

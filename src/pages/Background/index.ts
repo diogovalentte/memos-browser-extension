@@ -1,4 +1,4 @@
-import { encodeURL, getBrowser, getCurrentTabInfo, replaceNthOccurrence } from '../../@/lib/utils.ts';
+import { encodeURL, executeScript, getBrowser, getCurrentTabInfo, replaceNthOccurrence } from '../../@/lib/utils.ts';
 import { updateMemo, searchMemoByURL } from '../../@/lib/actions/memos.ts';
 // import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import { getConfig, isConfigured } from '../../@/lib/config.ts';
@@ -185,18 +185,16 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
   await genericOnClick(info, tab);
 });
 
-function getSelectedTextWithLinks(): void {
+function getSelectedTextWithLinks(): { text: string, url: string }[] {
   const selection = window.getSelection();
+  const links: { text: string, url: string }[] = [];
   if (!selection || selection.rangeCount === 0) {
-    document.documentElement.setAttribute("memos-selection-data", "No selection found.");
-    return;
+    return links;
   }
 
   const range = selection.getRangeAt(0);
   const container = document.createElement("div");
   container.appendChild(range.cloneContents());
-
-  const links: { text: string, url: string }[] = [];
 
   container.querySelectorAll("a").forEach((anchor) => {
     const linkText = anchor.textContent?.trim() || "Link";
@@ -204,7 +202,7 @@ function getSelectedTextWithLinks(): void {
     links.push({ text: linkText, url: href });
   });
 
-  document.documentElement.setAttribute("memos-selection-data", JSON.stringify(links));
+  return links;
 }
 
 // A generic onclick callback function.
@@ -230,20 +228,16 @@ async function genericOnClick(
                 return;
             }
             pageContent = info.selectionText;
-            browser.tabs.executeScript(tab.id, {
-                code: `(${getSelectedTextWithLinks.toString()})();`
-            }).then(() => {
-              browser.tabs.executeScript(tab.id!, {
-                code: 'document.documentElement.getAttribute("memos-selection-data");',
-              }).then((results) => {
-                const links = JSON.parse(results[0]) as { text: string, url: string }[];
+            executeScript(
+                tab.id, getSelectedTextWithLinks
+            ).then((result) => {
                 const occurrences = new Map<string, number>();
+                const links: { text: string, url: string }[] = result;
                 links.forEach((link) => {
                     occurrences.set(link.text, (occurrences.get(link.text) || 0) + 1);
                     const url = encodeURL(link.url);
                     pageContent = replaceNthOccurrence(pageContent, link.text, `[${link.text}](${url})`, occurrences.get(link.text)!);
                 });
-              }).catch(console.error);
             }).catch(console.error);
         }
 
@@ -411,7 +405,6 @@ browser.tabs.onActivated.addListener((activeInfo) => {
 });
 
 browser.runtime.onMessage.addListener((message) => {
-    console.log("Message received", message);
     if (message.action === 'addOpenMemoContextMenuOption') {
         addOpenMemoToContextMenu(message.memoUrl);
     }
