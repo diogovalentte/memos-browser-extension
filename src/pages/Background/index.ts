@@ -409,3 +409,10 @@ browser.tabs.onActivated.addListener((activeInfo) => {
     }
   });
 });
+
+browser.runtime.onMessage.addListener((message) => {
+    console.log("Message received", message);
+    if (message.action === 'addOpenMemoContextMenuOption') {
+        addOpenMemoToContextMenu(message.memoUrl);
+    }
+});

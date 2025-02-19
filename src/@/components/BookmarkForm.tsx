@@ -84,6 +84,11 @@ const BookmarkForm = () => {
         config.apiKey
       );
 
+      browser.runtime.sendMessage({
+        action: "addOpenMemoContextMenuOption",
+        memoUrl: values.url,
+      });
+
       if (values.createTime) {
           const createDatetime = DateTime.fromISO(values.createTime, { zone: 'local' });
           await updateMemo(
