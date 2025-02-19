@@ -2,7 +2,6 @@ import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { searchMemoByURL } from './actions/memos.ts';
 import { getConfig } from './config.ts';
-import escapeStringRegexp from 'escape-string-regexp';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -64,15 +63,6 @@ export function openOptions() {
 
 export function encodeURL(url: string) {
   return url.replace(/\(/g, "%28").replace(/\)/g, "%29");
-}
-
-export function replaceNthOccurrence(text: string, search: string, replace: string, occurrence: number): string {
-    search = escapeStringRegexp(search);
-    let count = 0;
-    return text.replace(new RegExp(search, 'g'), (match) => {
-        count++;
-        return count === occurrence ? replace : match;
-    });
 }
 
 export async function executeScript(tabId: number, func: any, args: any[] = []) {

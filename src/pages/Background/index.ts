@@ -1,4 +1,4 @@
-import { encodeURL, executeScript, getBrowser, getCurrentTabInfo, replaceNthOccurrence } from '../../@/lib/utils.ts';
+import { encodeURL, executeScript, getBrowser, getCurrentTabInfo } from '../../@/lib/utils.ts';
 import { updateMemo, searchMemoByURL } from '../../@/lib/actions/memos.ts';
 // import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import { getConfig, isConfigured } from '../../@/lib/config.ts';
@@ -8,7 +8,6 @@ import {
   // getBookmarkMetadataByUrl,
   getBookmarksMetadata,
 } from '../../@/lib/cache.ts';
-import ContextType = chrome.contextMenus.ContextType;
 import OnClickData = chrome.contextMenus.OnClickData;
 import OnInputEnteredDisposition = chrome.omnibox.OnInputEnteredDisposition;
 // import {
@@ -231,12 +230,44 @@ async function genericOnClick(
             executeScript(
                 tab.id, getSelectedTextWithLinks
             ).then((result) => {
-                const occurrences = new Map<string, number>();
                 const links: { text: string, url: string }[] = result;
+                const baseMarker = '__MEMOS_MARKER__';
+                const replacements = new Map<string, string>();
+                let counter = 1;
+
                 links.forEach((link) => {
-                    occurrences.set(link.text, (occurrences.get(link.text) || 0) + 1);
-                    const url = encodeURL(link.url);
-                    pageContent = replaceNthOccurrence(pageContent, link.text, `[${link.text}](${url})`, occurrences.get(link.text)!);
+                    let url = '';
+                    try {
+                        url = new URL(link.url).href;
+                    } catch {
+                        if (tab.url) {
+                            if (link.url.startsWith('#')) {
+                                url = tab.url + link.url;
+                            } else {
+                                try {
+                                    url = new URL(link.url, new URL(tab.url).origin).href;
+                                } catch (error) {
+                                    console.error(error);
+                                    url = '';
+                                }
+                            }
+                        }
+                    }
+                    url = encodeURL(url);
+                    let text = link.text;
+                    pageContent = pageContent.replace(text, baseMarker + counter);
+                    // text = text.replace(/\[\]/g, '\\$&'); // Replace [] with \[\]. Unfortunately, this doesn't work with Memos markdown parser
+                    text = text.replace(/\[/g, '(').replace(/\]/g, ')'); // Replace [] with ()
+                    if (url !== '') {
+                        replacements.set(baseMarker + counter, `[${text}](${url})`);
+                    } else {
+                        replacements.set(baseMarker + counter, text);
+                    }
+                    console.log(replacements)
+                    counter++;
+                });
+                replacements.forEach((value, key) => {
+                    pageContent = pageContent.replace(key, value);
                 });
             }).catch(console.error);
         }
@@ -273,24 +304,21 @@ async function genericOnClick(
     }
 }
 browser.runtime.onInstalled.addListener(function () {
-  // Create one test item for each context type.
-  const contexts: ContextType[] = [
-    // 'page',
-    'selection',
-    'link',
-    // 'editable',
-    'image',
-    // 'video',
-    // 'audio',
-  ];
-  for (const context of contexts) {
-    const title: string = 'Append to current page memo';
-    browser.contextMenus.create({
-      title: title,
-      contexts: [context],
-      id: context,
-    });
-  }
+  browser.contextMenus.create({
+    title: "Append link to current page memo",
+    contexts: ['link'],
+    id: 'link',
+  });
+  browser.contextMenus.create({
+    title: "Append selection to current page memo",
+    contexts: ['selection'],
+    id: 'selection',
+  });
+  browser.contextMenus.create({
+    title: "Append image to current page memo",
+    contexts: ['image'],
+    id: 'image',
+  });
 });
 
 // Omnibox implementation
