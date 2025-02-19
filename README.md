@@ -1,30 +1,31 @@
 # Memos Browser Extension
 
-A unofficial and simple browser extension to save memos of the currently open tab to [Memos](https://github.com/usememos/memos). It'll create notes using a specific design:
+An unofficial and simple web clip browser extension to save memos of the current page to [Memos](https://github.com/usememos/memos).
 
+![image](https://github.com/user-attachments/assets/808ca8df-91be-4df7-aff5-385fc65c8a3e)
+
+By default, the content will be automatically created using the design below, but you can change it on the extension popup before saving (*except for the tags*).
 ```markdown
 # Current tab title
-Current tab URL
-
-Content
+- [Source](current tab URL)
 
 #Tag1 #Tag2 #Tag3
 ```
 
-- You can change everything except the URL.
-
-The extension is a copy-paste of the [Linkwarden browser extension](https://github.com/linkwarden/browser-extension) with some adaptations to be used with Memos.
+The extension is a fork of the [Linkwarden browser extension](https://github.com/linkwarden/browser-extension) with adaptations for use with Memos.
 
 ## Features
 
 - Add new memos to Memos with a single click.
-- Sign in using API key.
-- It'll show existing tags the extension popup for you to use. You can create tags from the extension too.
+- Sign in using the API key.
+- Select the memo visibility and tags from a list of existing tags in your Memos instance. You can create tags from the extension too.
 - The web pages are automatically saved in [Archive.org](https://archive.org/web/) for future reference.
 - Option to set the memo create date (*make sure the timezones between your device/browser are in sync with the Memos instance timezone*).
-- Context menu to append selected text to the content of an existing memo of the current page.
-
-![Image](/assets/memos-extension.png)
+- Context menu options:
+  - Right-click an image and select to append image to the existing memo of the page (like `[Image](image URL)`).
+  - Right-click a selected text and select to append to the content of the existing memo of the current page.
+    - If the selected text contains links, it'll automatically create links in the Markdown format `[selected text](link)`.
+  - Right-click the page (*without selecting image or text*) and select to open the existing memo of the current page.
 
 ## Installation
 
