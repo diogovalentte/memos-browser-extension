@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Memos",
   "description": "The browser extension for Memos.",
-  "homepage_url": "https://www.usememos.com/",
+  "homepage_url": "https://github.com/diogovalentte/memos-browser-extension",
   "version": "0.0.1",
   "browser_action": {
     "default_popup": "./index.html",
