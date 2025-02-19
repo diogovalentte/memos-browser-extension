@@ -87,7 +87,7 @@ export const TagInput: FC<TagInputProps> = ({ value, onChange, tags }) => {
                               onChange([...value, tag]);
                             }
                           }
-                          setOpen(false);
+                          // setOpen(true);
                         }}
                       >
                         <Check
