@@ -8,6 +8,7 @@ export async function postMemo(
 ) {
     const url = `${baseUrl}/api/v1/memos`;
     let content = data.content;
+    content = content.replace(/\$/g, "\\$");
     if (data.tags && data.tags.length > 0) {
       content += `\n\n#${data.tags.map(tag => tag.name).join(' #')}`;
     }
@@ -40,7 +41,7 @@ export async function updateMemo(
         body.createTime = createTime;
     }
     if (content) {
-        body.content = content;
+        body.content = content.replace(/\$/g, "\\$");
     }
     
     const response = await fetch(url, {

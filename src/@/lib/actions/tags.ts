@@ -1,4 +1,4 @@
-import { getMemos } from './memos';
+import { getUserStats } from '../auth/auth';
 
 interface ResponseTags {
   id: number;
@@ -12,11 +12,9 @@ interface ResponseTags {
 }
 
 export async function getTags(baseUrl: string, apiKey: string, user: string) {
-    const memosResponse = await getMemos(baseUrl, apiKey, user, null);
-
-    const uniqueTags = Array.from(new Set(memosResponse.memos.flatMap(memo => memo.tags)));
-
-    const formattedTags: ResponseTags[] = uniqueTags.map((tag, index) => ({
+    const userStats = await getUserStats(baseUrl, apiKey, user);
+    const tags = Object.keys(userStats.tagCount);
+    const formattedTags: ResponseTags[] = tags.map((tag, index) => ({
       id: index + 1,
       name: tag,
       ownerId: 0,
