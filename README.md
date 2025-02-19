@@ -59,7 +59,11 @@ cd memos-browser-extension
 And run:
 
 ```
+# Chrome
 chmod +x ./build.sh && ./build.sh
+
+# Firefox
+chmod +x ./build.sh && ./build.sh --firefox
 ```
 
 After the above command, use the `/dist` folder as an unpacked extension in your browser.
