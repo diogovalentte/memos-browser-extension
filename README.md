@@ -2,7 +2,7 @@
 
 An unofficial and simple web clip browser extension to save memos of the current page to [Memos](https://github.com/usememos/memos).
 
-![image](https://github.com/user-attachments/assets/808ca8df-91be-4df7-aff5-385fc65c8a3e)
+![Image](/assets/memos-extension.png)
 
 By default, the content will be automatically created using the design below, but you can change it on the extension popup before saving (*except for the tags*).
 ```markdown
