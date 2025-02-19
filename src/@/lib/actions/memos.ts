@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { memoFormValues } from '../validators/memoForm.ts';
+import { encodeURL } from '../utils.ts';
 
 export async function postMemo(
   baseUrl: string,
@@ -92,6 +93,8 @@ export async function getMemos(baseUrl: string, apiKey: string, user: string, ne
 
 // Search a memo by URL in the second line of the content
 export async function searchMemoByURL(baseUrl: string, apiKey: string, user: string, url: string): Promise<Memo | null> {
+    url = url.split('?')[0].split('#')[0];
+    url = encodeURL(url);
     let nextPageToken = null;
     let memo: Memo | null = null;
     while (nextPageToken !== "") {
