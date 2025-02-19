@@ -37,7 +37,6 @@ import {
 } from './ui/Command.tsx';
 import { toast } from '../../hooks/use-toast.ts';
 import { AxiosError } from 'axios';
-import { clearBookmarksMetadata } from '../lib/cache.ts';
 import { getUserStatus } from '../lib/auth/auth.ts';
 
 const OptionsForm = () => {
@@ -88,7 +87,6 @@ const OptionsForm = () => {
         },
       });
       await clearConfig();
-      await clearBookmarksMetadata();
       return;
     },
   });
