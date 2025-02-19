@@ -300,11 +300,11 @@ const BookmarkForm = () => {
                 name="createTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Created Date</FormLabel>
+                    <FormLabel>Create Date</FormLabel>
                     <FormControl>
                       <Input
                         type="date"
-                        placeholder="Created date..."
+                        placeholder="Create date..."
                         {...field}
                       />
                     </FormControl>
