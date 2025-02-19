@@ -221,7 +221,7 @@ const OptionsForm = () => {
             name="defaultVisibility"
             render={({ field }) => (
               <FormItem className={`my-2`}>
-                <FormLabel>Visibility</FormLabel>
+                <FormLabel>Default Visibility</FormLabel>
                 <div className="min-w-full inset-x-0">
                   <Popover
                     open={openVisibility}
