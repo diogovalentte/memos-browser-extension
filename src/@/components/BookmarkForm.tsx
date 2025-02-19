@@ -1,4 +1,5 @@
 import { useForm } from 'react-hook-form';
+import { encodeURL } from '../../@/lib/utils.ts';
 import { DateTime } from 'luxon';
 import { CaretSortIcon } from '@radix-ui/react-icons';
 import {
@@ -56,7 +57,6 @@ const BookmarkForm = () => {
     resolver: zodResolver(memoFormSchema),
     defaultValues: {
       url: '',
-      name: '',
       tags: [],
       content: '',
       createTime: '',
@@ -135,8 +135,10 @@ const BookmarkForm = () => {
   useEffect(() => {
     getCurrentTabInfo().then(({ url, title }) => {
       getConfig().then(() => {
-        form.setValue('url', url ? url : '');
-        form.setValue('name', title ? title : '');
+        url = url ? url : '';
+        title = title ? title : '';
+        form.setValue('url', url);
+        form.setValue('content', `# ${title}\n- [Source](${encodeURL(url)})`);
       });
     });
     const getConfigUse = async () => {
@@ -271,19 +273,6 @@ const BookmarkForm = () => {
                         tags={tags}
                       />
                     )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Google..." {...field} />
-                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

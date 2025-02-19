@@ -12,7 +12,6 @@ export const memoFormSchema = z.object({
       })
     )
     .nullish(),
-  name: z.string(),
   content: z.string(),
   createTime: z.string().optional(),
   visibility: z
