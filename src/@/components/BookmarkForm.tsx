@@ -86,7 +86,7 @@ const BookmarkForm = () => {
       );
 
       browser.runtime.sendMessage({
-        action: "addOpenMemoContextMenuOption",
+        action: "addContextMenuOptions",
         memoUrl: values.url,
       });
 

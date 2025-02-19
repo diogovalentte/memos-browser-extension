@@ -184,26 +184,6 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
   await genericOnClick(info, tab);
 });
 
-function getSelectedTextWithLinks(): { text: string, url: string }[] {
-  const selection = window.getSelection();
-  const links: { text: string, url: string }[] = [];
-  if (!selection || selection.rangeCount === 0) {
-    return links;
-  }
-
-  const range = selection.getRangeAt(0);
-  const container = document.createElement("div");
-  container.appendChild(range.cloneContents());
-
-  container.querySelectorAll("a").forEach((anchor) => {
-    const linkText = anchor.textContent?.trim() || "Link";
-    const href = anchor.getAttribute("href") || "";
-    links.push({ text: linkText, url: href });
-  });
-
-  return links;
-}
-
 // A generic onclick callback function.
 async function genericOnClick(
   info: OnClickData,
@@ -303,22 +283,28 @@ async function genericOnClick(
         }
     }
 }
+
+function getSelectedTextWithLinks(): { text: string, url: string }[] {
+  const selection = window.getSelection();
+  const links: { text: string, url: string }[] = [];
+  if (!selection || selection.rangeCount === 0) {
+    return links;
+  }
+
+  const range = selection.getRangeAt(0);
+  const container = document.createElement("div");
+  container.appendChild(range.cloneContents());
+
+  container.querySelectorAll("a").forEach((anchor) => {
+    const linkText = anchor.textContent?.trim() || "Link";
+    const href = anchor.getAttribute("href") || "";
+    links.push({ text: linkText, url: href });
+  });
+
+  return links;
+}
+
 browser.runtime.onInstalled.addListener(function () {
-  browser.contextMenus.create({
-    title: "Append link to current page memo",
-    contexts: ['link'],
-    id: 'link',
-  });
-  browser.contextMenus.create({
-    title: "Append selection to current page memo",
-    contexts: ['selection'],
-    id: 'selection',
-  });
-  browser.contextMenus.create({
-    title: "Append image to current page memo",
-    contexts: ['image'],
-    id: 'image',
-  });
 });
 
 // Omnibox implementation
@@ -398,7 +384,28 @@ browser.omnibox.onInputEntered.addListener(
   }
 );
 
-async function addOpenMemoToContextMenu(tabURL: string) {
+browser.tabs.onActivated.addListener((activeInfo) => {
+  browser.tabs.get(activeInfo.tabId).then((tab) => {
+    if (tab.url) {
+        addContextMenuOptions(tab.url);
+    } else {
+      browser.tabs.onUpdated.addListener(function waitForUrl(tabId, _, updatedTab) {
+        if (tabId === activeInfo.tabId && updatedTab.url) {
+          browser.tabs.onUpdated.removeListener(waitForUrl);
+          addContextMenuOptions(updatedTab.url);
+        }
+      });
+    }
+  });
+});
+
+browser.runtime.onMessage.addListener((message) => {
+    if (message.action === 'addContextMenuOptions') {
+        addContextMenuOptions(message.memoUrl);
+    }
+});
+
+async function addContextMenuOptions(tabURL: string) {
   const configured = await isConfigured();
   if (!configured) {
     return;
@@ -412,28 +419,22 @@ async function addOpenMemoToContextMenu(tabURL: string) {
         contexts: ['page'],
         id: 'openMemo',
       });
+      browser.contextMenus.create({
+        title: "Append link to current page memo",
+        contexts: ['link'],
+        id: 'link',
+      });
+      browser.contextMenus.create({
+        title: "Append selection to current page memo",
+        contexts: ['selection'],
+        id: 'selection',
+      });
+      browser.contextMenus.create({
+        title: "Append image to current page memo",
+        contexts: ['image'],
+        id: 'image',
+      });
   } else {
-    browser.contextMenus.remove('openMemo');
+    browser.contextMenus.removeAll();
   }
 }
-
-browser.tabs.onActivated.addListener((activeInfo) => {
-  browser.tabs.get(activeInfo.tabId).then((tab) => {
-    if (tab.url) {
-        addOpenMemoToContextMenu(tab.url);
-    } else {
-      browser.tabs.onUpdated.addListener(function waitForUrl(tabId, _, updatedTab) {
-        if (tabId === activeInfo.tabId && updatedTab.url) {
-          browser.tabs.onUpdated.removeListener(waitForUrl);
-          addOpenMemoToContextMenu(updatedTab.url);
-        }
-      });
-    }
-  });
-});
-
-browser.runtime.onMessage.addListener((message) => {
-    if (message.action === 'addOpenMemoContextMenuOption') {
-        addOpenMemoToContextMenu(message.memoUrl);
-    }
-});
