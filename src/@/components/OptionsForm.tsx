@@ -115,13 +115,13 @@ const OptionsForm = () => {
         if (error.response?.status === 401) {
           toast({
             title: 'Error',
-            description: 'Invalid credentials or API Key',
+            description: 'Invalid API Key',
             variant: 'destructive',
           });
         } else {
           toast({
             title: 'Error',
-            description: 'Something went wrong, try again please.',
+            description: 'Something went wrong, check your values are correct.',
             variant: 'destructive',
           });
         }
