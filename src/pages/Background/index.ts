@@ -1,4 +1,4 @@
-import { encodeURL, executeScript, getBrowser, } from '../../@/lib/utils.ts';
+import { encodeContent, encodeURL, executeScript, getBrowser, } from '../../@/lib/utils.ts';
 import { updateMemo, searchMemoByURL } from '../../@/lib/actions/memos.ts';
 import { getConfig, isConfigured } from '../../@/lib/config.ts';
 import OnClickData = chrome.contextMenus.OnClickData;
@@ -35,7 +35,7 @@ async function genericOnClick(
             if (!tab.id) {
                 return;
             }
-            pageContent = info.selectionText;
+            pageContent = encodeContent(info.selectionText);
             executeScript(
                 tab.id, getSelectedTextWithLinks
             ).then((result) => {
@@ -72,7 +72,6 @@ async function genericOnClick(
                     } else {
                         replacements.set(baseMarker + counter, text);
                     }
-                    console.log(replacements)
                     counter++;
                 });
                 replacements.forEach((value, key) => {

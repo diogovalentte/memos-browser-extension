@@ -65,6 +65,10 @@ export function encodeURL(url: string) {
   return url.replace(/\(/g, "%28").replace(/\)/g, "%29");
 }
 
+export function encodeContent(content: string) {
+    return content.replace(/[$\[]/g, '\\$&'); // Escape $ and [
+}
+
 export async function executeScript(tabId: number, func: any, args: any[] = []) {
   if (typeof chrome.scripting !== 'undefined') {
     const results = await chrome.scripting.executeScript({
