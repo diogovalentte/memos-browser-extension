@@ -66,7 +66,7 @@ export function encodeURL(url: string) {
 }
 
 export function encodeContent(content: string) {
-    return content.replace(/[$\[]/g, '\\$&'); // Escape $ and [
+    return content.replace(/(?<!\\)\$/g, '\\$').replace(/\[/g, '\\['); // Escape $ only if not already escaped. Always escape [
 }
 
 export async function executeScript(tabId: number, func: any, args: any[] = []) {

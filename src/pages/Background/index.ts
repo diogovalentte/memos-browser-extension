@@ -65,7 +65,7 @@ async function genericOnClick(
                     url = encodeURL(url);
                     let text = link.text;
                     pageContent = pageContent.replace(text, baseMarker + counter);
-                    // text = text.replace(/\[\]/g, '\\$&'); // Replace [] with \[\]. Unfortunately, this doesn't work with Memos markdown parser
+                    // text = text.replace(/(?<!\\)\[/g, '\\[').replace(/(?<!\\)\]/g, '\\]'); // Escape [] with \[\] if not already escaped. Unfortunately, this doesn't work with Memos markdown parser
                     text = text.replace(/\[/g, '(').replace(/\]/g, ')'); // Replace [] with ()
                     if (url !== '') {
                         replacements.set(baseMarker + counter, `[${text}](${url})`);
