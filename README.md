@@ -10,6 +10,7 @@ By default, the extension will pre-fill the content field with the following des
 - [Source](current tab URL)
 ```
 
+- Changing the URL or not making it the second line of the meno content will break the context menu options (*more about [here](https://github.com/diogovalentte/memos-browser-extension#features)*).
 - The tags selected in the tags input will be automatically added at the bottom of the content later, like `#tag1 #tag2`.
 
 This extension is a fork of the [Linkwarden browser extension](https://github.com/linkwarden/browser-extension) with adaptations to be used with Memos.
@@ -68,3 +69,10 @@ chmod +x ./build.sh && ./build.sh --firefox
 ```
 
 After the above command, use the `/dist` folder as an unpacked extension in your browser.
+
+If you want to load a zip file, you can run:
+
+```
+cd dist && zip -r ../my-extension.zip * && cd ..
+```
+The zip file will be generated in the project root folder with the name `my-extension.zip`.
