@@ -182,78 +182,78 @@ const BookmarkForm = () => {
         <form onSubmit={handleSubmit((e) => onSubmit(e))} className="py-1">
             <div className="details list-none space-y-5 pt-2">
               {tagsError ? <p>There was an error...</p> : null}
-          <FormField
-            control={control}
-            name="visibility"
-            render={({ field }) => (
-              <FormItem className={`my-2`}>
-                <FormLabel>Visibility</FormLabel>
-                <div className="min-w-full inset-x-0">
-                  <Popover
-                    open={openVisibility}
-                    onOpenChange={setOpenVisibility}
-                  >
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={openVisibility}
-                          className={
-                            'w-full justify-between bg-neutral-100 dark:bg-neutral-900'
-                          }
-                        >
-                          {field.value?.name
-                            ? visibilityOptions?.find(
-                                (option: { name: string }) =>
-                                  option.name === field.value?.name
-                              )?.name || form.getValues('visibility')?.name
-                            : 'Select visibility...'}
-                          <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-
-                      <PopoverContent
-                        className={`min-w-full p-0 overflow-y-auto max-h-[200px]`}
+              <FormField
+                control={control}
+                name="visibility"
+                render={({ field }) => (
+                  <FormItem className={`my-2`}>
+                    <FormLabel>Visibility</FormLabel>
+                    <div className="min-w-full inset-x-0">
+                      <Popover
+                        open={openVisibility}
+                        onOpenChange={setOpenVisibility}
                       >
-                        <Command className="flex-grow min-w-full dropdown-content">
-                          <CommandInput
-                            className="min-w-[280px]"
-                            placeholder="Search visibility..."
-                          />
-                          <CommandEmpty>No visibility found.</CommandEmpty>
-                          {Array.isArray(visibilityOptions) && (
-                            <CommandGroup className="w-full">
-                              {
-                                visibilityOptions?.map(
-                                  (option: {
-                                    name: string;
-                                  }) => (
-                                    <CommandItem
-                                      value={option.name}
-                                      onSelect={() => {
-                                        form.setValue('visibility', {
-                                          name: option.name,
-                                        });
-                                        setOpenVisibility(false);
-                                      }}
-                                    >
-                                      {option.name}
-                                    </CommandItem>
-                                  )
-                                )
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={openVisibility}
+                              className={
+                                'w-full justify-between bg-neutral-100 dark:bg-neutral-900'
                               }
-                            </CommandGroup>
-                          )}
-                        </Command>
-                      </PopoverContent>
-                  </Popover>
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                            >
+                              {field.value?.name
+                                ? visibilityOptions?.find(
+                                    (option: { name: string }) =>
+                                      option.name === field.value?.name
+                                  )?.name || form.getValues('visibility')?.name
+                                : 'Select visibility...'}
+                              <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+
+                          <PopoverContent
+                            className={`min-w-full p-0 overflow-y-auto max-h-[200px]`}
+                          >
+                            <Command className="flex-grow min-w-full dropdown-content">
+                              <CommandInput
+                                className="min-w-[280px]"
+                                placeholder="Search visibility..."
+                              />
+                              <CommandEmpty>No visibility found.</CommandEmpty>
+                              {Array.isArray(visibilityOptions) && (
+                                <CommandGroup className="w-full">
+                                  {
+                                    visibilityOptions?.map(
+                                      (option: {
+                                        name: string;
+                                      }) => (
+                                        <CommandItem
+                                          value={option.name}
+                                          onSelect={() => {
+                                            form.setValue('visibility', {
+                                              name: option.name,
+                                            });
+                                            setOpenVisibility(false);
+                                          }}
+                                        >
+                                          {option.name}
+                                        </CommandItem>
+                                      )
+                                    )
+                                  }
+                                </CommandGroup>
+                              )}
+                            </Command>
+                          </PopoverContent>
+                      </Popover>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={control}
                 name="tags"
