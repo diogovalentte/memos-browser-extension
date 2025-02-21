@@ -171,17 +171,17 @@ async function addContextMenuOptions(tabURL: string) {
         id: 'openMemo',
       });
       browser.contextMenus.create({
-        title: "Append link to current page memo",
+        title: "Append link to page memo",
         contexts: ['link'],
         id: 'link',
       });
       browser.contextMenus.create({
-        title: "Append selection to current page memo",
+        title: "Append selection to page memo",
         contexts: ['selection'],
         id: 'selection',
       });
       browser.contextMenus.create({
-        title: "Append image to current page memo",
+        title: "Append image to page memo",
         contexts: ['image'],
         id: 'image',
       });
