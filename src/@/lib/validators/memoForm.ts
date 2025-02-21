@@ -12,8 +12,18 @@ export const memoFormSchema = z.object({
       })
     )
     .nullish(),
-  content: z.string(),
-  createTime: z.string().optional(),
+  content: z.string().optional(),
+  createDate: z
+    .object(
+      {
+        date: z.string().optional(), 
+        time: z.string().optional(),
+      }
+    )
+    .refine((data) => !(data.time && !data.date), {
+      message: 'Date is required when time is provided',
+      path: ['time'],
+    }),
   visibility: z
     .object({
       name: z.string(),

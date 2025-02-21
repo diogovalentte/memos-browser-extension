@@ -60,7 +60,7 @@ const BookmarkForm = () => {
       url: '',
       tags: [],
       content: '',
-      createTime: '',
+      createDate: { date: "", time: "" },
       visibility: {
         name: 'Public',
       },
@@ -90,12 +90,23 @@ const BookmarkForm = () => {
         memoUrl: values.url,
       });
 
-      if (values.createTime) {
-          const createDatetime = DateTime.fromISO(values.createTime, { zone: 'local' });
+      if (values.createDate.date) {
+          let createDate = values.createDate.date;
+          let createTime = values.createDate.time;
+          if (!createDate) {
+            createDate = DateTime.now().toFormat('yyyy-MM-dd');
+          }
+          if (!createTime) {
+            createTime = '00:00:00';
+          } else {
+            createTime = createTime + ':00';
+          }
+
+          const createDateTime = DateTime.fromISO(`${createDate}T${createTime}`, { zone: 'local' });
           await updateMemo(
             config.baseUrl,
             memoData.name,
-            createDatetime.toISO(),
+            createDateTime.toISO(),
             null,
             config.apiKey
           );
@@ -296,23 +307,50 @@ const BookmarkForm = () => {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={control}
-                name="createTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Create Date</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        placeholder="Create date..."
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
+                <FormField
+                  control={control}
+                  name="createDate.date"
+                  render={({ field }) => (
+                    <FormItem className="flex-grow">
+                      <FormLabel>Create Date</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          placeholder="Create date..."
+                          value={field.value || ""}
+                          onChange={(e) =>
+                            field.onChange(e.target.value)
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={control}
+                  name="createDate.time"
+                  render={({ field }) => (
+                    <FormItem className="flex-grow">
+                      <FormControl>
+                        <Input
+                          type="time"
+                          placeholder="Create time..."
+                          value={field.value || ""}
+                          onChange={(e) =>
+                            field.onChange(e.target.value)
+                          }
+                        />
+                      </FormControl>
+                      {/* <FormMessage /> */}
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormMessage>
+                {form.formState.errors?.createDate?.time?.message || ""}
+              </FormMessage>
             </div>
           {duplicated && (
             <p className="text-muted text-zinc-600 dark:text-zinc-400 mt-2">
