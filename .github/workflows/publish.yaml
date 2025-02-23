@@ -1,0 +1,45 @@
+name: Publish Package
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build chrome
+        run: ./build.sh
+
+      - name: Zip chrome
+        run: |
+          cd dist
+          zip -r ../memos-browser-extension-chrome.zip .
+
+      - name: Delete dist
+        run: rm -rf dist
+
+      - name: Run firefox
+        run: ./build.sh --firefox
+
+      - name: Zip firefox
+        run: |
+          cd dist
+          zip -r ../memos-browser-extension-firefox.zip .
+
+      - name: Create Releases
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            memos-browser-extension-chrome.zip
+            memos-browser-extension-firefox.zip
