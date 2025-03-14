@@ -66,11 +66,14 @@ export interface Memo {
     tags: string[];
 }
 
-export async function getMemos(baseUrl: string, apiKey: string, user: string, nextPageToken: string | null): Promise<{ memos: Memo[], nextPageToken: string }> {
+export async function getMemos(baseUrl: string, apiKey: string, user: string, filter: string | null, nextPageToken: string | null): Promise<{ memos: Memo[], nextPageToken: string }> {
     let url = `${baseUrl}/api/v1/memos?parent=${user}`;
 
     if (nextPageToken) {
         url += `&pageToken=${nextPageToken}`;
+    }
+    if (filter) {
+        url += `&filter=${filter}`;
     }
 
     const response = await fetch(url, {
@@ -90,31 +93,11 @@ export async function getMemos(baseUrl: string, apiKey: string, user: string, ne
     return { memos: data.memos, nextPageToken: data.nextPageToken };
 }
 
-// Search a memo by URL in the second line of the content
+// Search a memo by URL
 export async function searchMemoByURL(baseUrl: string, apiKey: string, user: string, url: string): Promise<Memo | null> {
-    url = url.split('?')[0].split('#')[0];
-    url = encodeURL(url);
-    let nextPageToken = null;
-    let memo: Memo | null = null;
-    while (nextPageToken !== "") {
-        const memosResponse = await getMemos(baseUrl, apiKey, user, nextPageToken);
-        memo = findInSecondLine(memosResponse.memos, url);
-        if (memo) {
-            return memo;
-        }
-        nextPageToken = memosResponse.nextPageToken;
-    }
+    const fixedURL = encodeURL(url.split('?')[0].split('#')[0]);
+    const filter = `content.contains("${fixedURL}")`;
+    const memosResp = await getMemos(baseUrl, apiKey, user, filter, null);
 
-    return memo;
-}
-
-function findInSecondLine(memos: Memo[], searchString: string): Memo | null {
-  for (const memo of memos) {
-    const lines = memo.content.split('\n'); 
-    if (lines[1] && lines[1].includes(searchString)) {
-      return { content: memo.content, name: memo.name, tags: memo.tags }; 
-    }
-  }
-
-  return null;
+    return memosResp.memos.length > 0 ? memosResp.memos[0] : null; 
 }
