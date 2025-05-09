@@ -3,7 +3,7 @@
   "name": "Memos",
   "description": "The browser extension for Memos.",
   "homepage_url": "https://github.com/diogovalentte/memos-browser-extension",
-  "version": "1.0.2",
+  "version": "1.2.0",
   "action": {
     "default_popup": "./index.html",
     "default_icon": {
