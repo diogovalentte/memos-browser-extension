@@ -10,7 +10,7 @@ By default, the extension will pre-fill the content field with the following des
 - [Source](current tab URL)
 ```
 
-- Changing the URL or not making it the second line of the meno content will break the context menu options (*more about [here](https://github.com/diogovalentte/memos-browser-extension#features)*).
+- Changing the URL or not making it the second line of the memo content will break the context menu options (*more about [here](https://github.com/diogovalentte/memos-browser-extension#features)*).
 - The tags selected in the tags input will be automatically added at the bottom of the content later, like `#tag1 #tag2`.
 
 This extension is a fork of the [Linkwarden browser extension](https://github.com/linkwarden/browser-extension) with adaptations to be used with Memos.
@@ -19,9 +19,9 @@ This extension is a fork of the [Linkwarden browser extension](https://github.co
 
 - Add new memos to Memos with a single click.
 - Sign in using the API key.
-- Select the memo visibility and tags from the list of existing tags in Memos. You can create tags from the extension too.
+- Select the memo visibility and tags from the list of existing tags in Memos. You can create tags from the extension, too.
 - The web pages are automatically saved in [Archive.org](https://archive.org/web/) for future reference.
-- Option to set the memo create date (*make sure the timezones between your device/browser are in sync with the Memos instance timezone*).
+- Option to set the memo creation date (*make sure the timezones between your device/browser are in sync with the Memos instance timezone*).
 - Context menu options:
   - Right-click an **image** and append the image to the memo of the page (like `![Image](image URL)`).
   - Right-click a **link** and append the link to the content of the memo of the current page.
@@ -31,7 +31,7 @@ This extension is a fork of the [Linkwarden browser extension](https://github.co
 
 ## Installation
 
-No available installation yet. You can build the extension from source.
+It's available on [Mozilla's official extensions store](https://addons.mozilla.org/en-US/firefox/addon/memos/), but you can check the [releases](https://github.com/diogovalentte/memos-browser-extension/releases) page for installing it manually in Chrome-based browsers.
 
 ## Build From Source
 
