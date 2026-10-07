@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Build chrome
         run: ./build.sh
@@ -43,3 +45,28 @@ jobs:
           files: |
             memos-browser-extension-chrome.zip
             memos-browser-extension-firefox.zip
+
+      - name: Prepare Firefox Add-ons submission
+        run: |
+          git archive --format=zip -o memos-browser-extension-source.zip HEAD
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)
+          RELEASE_NOTES=$(git log --format='- %s' ${PREVIOUS_TAG:+$PREVIOUS_TAG..}HEAD)
+          jq -n --arg notes "$RELEASE_NOTES" '{
+            version: {
+              release_notes: {"en-US": $notes},
+              approval_notes: "Requires Node.js and npm. Build with: chmod +x ./build.sh && ./build.sh --firefox. The extension is generated in the dist/ folder."
+            }
+          }' > amo-metadata.json
+
+      - name: Publish to Firefox Add-ons
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          npx --yes web-ext@10.7.0 sign \
+            --source-dir dist \
+            --artifacts-dir web-ext-artifacts \
+            --channel listed \
+            --upload-source-code memos-browser-extension-source.zip \
+            --amo-metadata amo-metadata.json \
+            --approval-timeout 0
