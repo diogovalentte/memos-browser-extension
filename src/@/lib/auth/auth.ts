@@ -8,7 +8,7 @@ export async function getUserStatus(
     url: string,
     apiKey: string
 ): Promise<User> {
-    url = `${url}/api/v1/auth/sessions/current`;
+    url = `${url}/api/v1/auth/me`;
     const response = await axios.get(url, {
         headers: {
             'Content-Type': 'application/json',
