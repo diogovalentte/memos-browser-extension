@@ -212,7 +212,7 @@ async function genericOnClick(
             tab.url
         );
         if (memo) {
-            const url = `${config.baseUrl}/m/${memo.name.split('/')[1]}`;
+            const url = `${config.baseUrl}/memos/${memo.name.split('/')[1]}`;
             browser.tabs.create({ url });
         }
     }
